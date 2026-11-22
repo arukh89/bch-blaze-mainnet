@@ -42,6 +42,6 @@ Live demo: https://arukh89.github.io/bch-blaze-mainnet/
 
 ## Links
 
-- Presentation: https://docs.google.com/presentation/d/1BoShdQ4XumRcO7zVj9abksrsoqfQ_EaQ03ZfVlsObMs/edit?usp=sharing
+- Presentation: https://docs.google.com/presentation/d/1HbALM9_lGp8_zHpxacGp5PkfLw4vmmKOTYjSIGYVapk/edit?usp=sharing
 - CashTokens donation address: `bitcoincash:qpsrfdv7rsaxafweujqe56t3avzeuuj5fyz2xsm762`
 - BCH BLAZE 2026: https://dorahacks.io/hackathon/bchblaze2026/detail
