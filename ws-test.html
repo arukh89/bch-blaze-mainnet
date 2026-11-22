@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Blaze Letters — WebSocket diagnostic (chipnet)</title>
+<style>body{font-family:monospace;max-width:800px;margin:2em auto;padding:0 1em}pre{white-space:pre-wrap;background:#f4f4f4;padding:1em;border:1px solid #ccc}</style>
+</head>
+<body>
+<h1>WebSocket diagnostic — chipnet Electrum</h1>
+<p>Tests whether this browser can open a wss connection to the chipnet Electrum servers and speak the Electrum protocol. Diagnostic page only; not part of the demo.</p>
+<pre id="log">starting…</pre>
+<script>
+const logEl = document.getElementById('log');
+const lines = [];
+function log(s) { lines.push(new Date().toISOString().slice(11, 19) + ' ' + s); logEl.textContent = lines.join('\n'); }
+function testServer(url, addr) {
+  return new Promise((resolve) => {
+    log('connecting to ' + url + ' …');
+    let ws;
+    try { ws = new WebSocket(url); } catch (e) { log(url + ' constructor threw: ' + e.message); return resolve(false); }
+    const to = setTimeout(() => { log(url + ' STILL CONNECTING after 20s (no open, no error)'); try { ws.close(); } catch (e) {} resolve(false); }, 20000);
+    ws.onopen = () => {
+      log(url + ' OPEN');
+      const rpc = (id, method, params) => ws.send(JSON.stringify({ id, method, params }));
+      rpc(1, 'server.version', ['ws-test', '1.4']);
+      rpc(2, 'blockchain.address.get_balance', [addr]);
+    };
+    ws.onmessage = (ev) => { log(url + ' ← ' + ev.data); };
+    ws.onerror = (ev) => { log(url + ' ERROR event'); };
+    ws.onclose = (ev) => { clearTimeout(to); log(url + ' CLOSE code=' + ev.code + ' reason=' + (ev.reason || '(none)') + ' wasClean=' + ev.wasClean); resolve(true); };
+    // resolve after both RPC answers or close; give the server 10s after open
+    const done = setInterval(() => {
+      if (lines.filter((l) => l.includes(url + ' ←')).length >= 2) { clearInterval(done); clearTimeout(to); try { ws.close(); } catch (e) {} resolve(true); }
+    }, 500);
+    setTimeout(() => clearInterval(done), 35000);
+  });
+}
+(async () => {
+  const addr = 'bchtest:qq8tfv5mmzkwjwwyks4daja59h7jz6tp8vyz9sfmfa';
+  await testServer('wss://chipnet.bch.ninja:50004', addr);
+  await testServer('wss://chipnet.imaginary.cash:50004', addr);
+  log('DONE');
+})();
+</script>
+</body>
+</html>
