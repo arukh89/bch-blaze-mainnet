@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blaze Letters — sealed letters on Bitcoin Cash</title>
+<style>
+  :root { --bg:#0f1115; --card:#171a21; --line:#262b36; --txt:#e8eaf0; --mut:#9aa3b2; --acc:#f59300; --ok:#3fb97f; --bad:#e5534b; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--txt); }
+  .wrap { max-width:860px; margin:0 auto; padding:0 16px 64px; }
+  header.banner { border:1px solid var(--line); border-radius:12px; margin:16px 0; padding:16px 18px; background:linear-gradient(135deg,#1b1408,#171a21 55%); }
+  header.banner h1 { margin:0 0 4px; font-size:26px; }
+  header.banner h1 span { color:var(--acc); }
+  header.banner p { margin:0 0 12px; color:var(--mut); }
+  .links { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .links a, .links button { color:var(--txt); background:#222633; border:1px solid var(--line); border-radius:8px; padding:7px 12px; font-size:13px; text-decoration:none; cursor:pointer; }
+  .links a:hover, .links button:hover { border-color:var(--acc); }
+  .donate { font-family:ui-monospace,Menlo,monospace; font-size:12px; word-break:break-all; color:var(--mut); margin-top:10px; }
+  .tabs { display:flex; gap:8px; margin:18px 0 0; }
+  .tabs button { flex:1; padding:12px 6px; border:1px solid var(--line); border-bottom:none; border-radius:10px 10px 0 0; background:#12151c; color:var(--mut); font-size:15px; cursor:pointer; }
+  .tabs button.on { background:var(--card); color:var(--txt); border-color:var(--acc); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:0 0 12px 12px; padding:20px; }
+  .card h2 { margin:0 0 6px; font-size:19px; }
+  .card p.hint { color:var(--mut); margin:0 0 16px; font-size:14px; line-height:1.5; }
+  label { display:block; font-size:13px; color:var(--mut); margin:14px 0 6px; }
+  textarea, input[type=text], input[type=number] { width:100%; background:#0f1218; border:1px solid var(--line); border-radius:8px; color:var(--txt); padding:10px 12px; font-size:15px; }
+  textarea { min-height:110px; resize:vertical; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
+  .row > div { flex:1; min-width:140px; }
+  button.big { background:var(--acc); color:#14100a; border:none; border-radius:9px; padding:12px 18px; font-size:15px; font-weight:700; cursor:pointer; margin-top:16px; }
+  button.big:disabled { opacity:.45; cursor:default; }
+  button.ghost { background:transparent; border:1px solid var(--line); color:var(--txt); border-radius:8px; padding:9px 14px; cursor:pointer; font-size:14px; }
+  .counter { font-size:12px; color:var(--mut); text-align:right; margin-top:4px; }
+  .counter.over { color:var(--bad); }
+  .status { margin-top:16px; font-size:14px; line-height:1.6; white-space:pre-wrap; word-break:break-word; }
+  .status .ok { color:var(--ok); } .status .bad { color:var(--bad); } .status .mut { color:var(--mut); }
+  .result { margin-top:16px; border:1px solid var(--line); border-radius:10px; padding:14px; background:#0f1218; font-size:14px; line-height:1.7; word-break:break-all; }
+  .result a { color:var(--acc); }
+  .kv { display:grid; grid-template-columns:130px 1fr; gap:4px 10px; font-size:14px; }
+  .kv b { color:var(--mut); font-weight:600; }
+  .mono { font-family:ui-monospace,Menlo,monospace; font-size:13px; }
+  .walletbox { border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-bottom:16px; background:#0f1218; font-size:14px; line-height:1.7; }
+  .pill { display:inline-block; padding:2px 9px; border-radius:20px; font-size:12px; font-weight:700; }
+  .pill.main { background:#3a2a00; color:#ffb020; } .pill.chip { background:#12324a; color:#6fc3ff; }
+  .letter { border:1px solid var(--acc); border-radius:10px; padding:18px; margin-top:16px; background:#14100a; font-size:17px; line-height:1.7; white-space:pre-wrap; }
+  .warn { border:1px solid #6b4d00; background:#1d1708; border-radius:10px; padding:12px 14px; font-size:13px; line-height:1.6; color:#ffd9a0; margin-top:16px; }
+  .howto { margin-top:28px; border-top:1px solid var(--line); padding-top:18px; color:var(--mut); font-size:14px; line-height:1.7; }
+  .howto h3 { color:var(--txt); margin:0 0 8px; }
+  .hidden { display:none; }
+  #qr { background:#fff; padding:8px; border-radius:8px; display:inline-block; margin-top:10px; }
+  footer { margin-top:28px; color:var(--mut); font-size:12px; text-align:center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="banner">
+    <h1>&#128293; Blaze <span>Letters</span></h1>
+    <p>Sealed letters on Bitcoin Cash. Write a letter, seal it on-chain, and anyone who pays your price gets the key. Built for BCH BLAZE 2026 &mdash; Mainnet Track.</p>
+    <div class="links">
+      <a href="https://docs.google.com/presentation/d/1BoShdQ4XumRcO7zVj9abksrsoqfQ_EaQ03ZfVlsObMs/edit?usp=sharing" target="_blank" rel="noopener">Presentation</a>
+      <a href="https://github.com/arukh89/bch-blaze-mainnet" target="_blank" rel="noopener">GitHub repo</a>
+      <button id="copyDonate" type="button">Copy donation address</button>
+      <a href="https://dorahacks.io/hackathon/bchblaze2026/detail" target="_blank" rel="noopener">BCH BLAZE 2026</a>
+    </div>
+    <div class="donate">CashTokens donation address: <span id="donateAddr">bitcoincash:qpsrfdv7rsaxafweujqe56t3avzeuuj5fyz2xsm762</span></div>
+  </header>
+
+  <div class="walletbox" id="walletBox">
+    <div><span id="netPill" class="pill main">MAINNET</span> <span id="walletState">No wallet connected.</span></div>
+    <div id="walletDetail" class="mono" style="color:var(--mut)"></div>
+    <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="ghost" id="btnBuiltin" type="button">Use built-in wallet</button>
+      <button class="ghost" id="btnWizard" type="button">Connect with WizardConnect</button>
+      <button class="ghost hidden" id="btnDisconnect" type="button">Disconnect</button>
+    </div>
+    <div id="wizardBox" class="hidden" style="margin-top:12px;">
+      <div style="color:var(--mut); font-size:13px;">Scan with Paytaca or Cashonize (WizardConnect). The wallet signs &mdash; it never sees your letter.</div>
+      <div id="qr"></div>
+      <div class="mono" id="wizUri" style="word-break:break-all; font-size:12px; color:var(--mut); margin-top:8px;"></div>
+      <div style="margin-top:8px;"><button class="ghost" id="btnCopyWiz" type="button">Copy connection link</button></div>
+    </div>
+    <div style="color:var(--mut); font-size:12px; margin-top:10px;">Built-in wallet: a fresh wallet is created in this browser tab only. Fund it with a small amount first &mdash; never import a seed phrase anywhere on this page. WizardConnect: your own mobile wallet signs each transaction.</div>
+  </div>
+
+  <div class="tabs">
+    <button type="button" data-tab="seal" class="on">1 &middot; Seal a letter</button>
+    <button type="button" data-tab="watch">2 &middot; Watch &amp; reveal</button>
+    <button type="button" data-tab="read">3 &middot; Read a letter</button>
+  </div>
+
+  <!-- ============ SEAL ============ -->
+  <section class="card" id="tab-seal">
+    <h2>Seal a letter</h2>
+    <p class="hint">Your letter is encrypted in this browser with AES-256-GCM. Only the ciphertext and a hash of the key go on-chain &mdash; the key itself is never published until someone pays.</p>
+    <label for="letterText">Your letter</label>
+    <textarea id="letterText" maxlength="100" placeholder="Dear Ibu, the money arrived in seconds&#8230;">Dear Ibu, the money arrived in seconds. The fee was less than a cent. Love, Maya.</textarea>
+    <div class="counter" id="letterCounter"></div>
+    <div class="row">
+      <div>
+        <label for="priceInput">Price to unlock (satoshis, min 1000)</label>
+        <input type="number" id="priceInput" value="2000" min="1000" step="1">
+      </div>
+      <div>
+        <label>On-chain size (OP_RETURN)</label>
+        <input type="text" id="sizePreview" readonly value="—">
+      </div>
+    </div>
+    <button class="big" id="btnSeal" type="button">Seal &amp; broadcast</button>
+    <div class="status" id="sealStatus"></div>
+    <div class="result hidden" id="sealResult"></div>
+    <div class="warn hidden" id="sealWarn"></div>
+  </section>
+
+  <!-- ============ WATCH ============ -->
+  <section class="card hidden" id="tab-watch">
+    <h2>Watch &amp; reveal</h2>
+    <p class="hint">Leave this tab open after sealing. When a reader pays your price, this tab detects the payment and broadcasts the reveal transaction with the decryption key &mdash; automatically, from your wallet.</p>
+    <div id="myLetters"></div>
+    <label for="watchSealTxid">Seal transaction ID (or paste a letter link)</label>
+    <input type="text" id="watchSealTxid" placeholder="seal txid, or a full letter link">
+    <label for="watchKeyHex">Decryption key (hex, 64 chars) &mdash; needed to reveal</label>
+    <input type="text" id="watchKeyHex" placeholder="32-byte key as hex">
+    <div class="row" style="margin-top:14px;">
+      <button class="big" id="btnWatch" type="button" style="margin-top:0;">Start watching</button>
+      <button class="ghost" id="btnRevealNow" type="button">Reveal now (manual)</button>
+    </div>
+    <label for="watchPayTxid">Payment txid (optional &mdash; if the reader already paid before this tab opened)</label>
+    <input type="text" id="watchPayTxid" placeholder="payment txid, to trigger the reveal manually">
+    <div class="status" id="watchStatus"></div>
+    <div class="result hidden" id="watchResult"></div>
+    <div class="warn">Keep this tab open. The reveal is broadcast from <b>your</b> wallet in <b>this</b> tab &mdash; if you close it, no key is released and the reader stays locked out. If a payment was made before this tab opened, paste its txid above and press &ldquo;Reveal now&rdquo;.</div>
+  </section>
+
+  <!-- ============ READ ============ -->
+  <section class="card hidden" id="tab-read">
+    <h2>Read a letter</h2>
+    <p class="hint">Open a letter link, pay the author&rsquo;s price, and the author&rsquo;s open tab reveals the key. Your payment and the reveal are both public on-chain transactions.</p>
+    <label for="readLink">Letter link</label>
+    <input type="text" id="readLink" placeholder="https://arukh89.github.io/bch-blaze-mainnet/#r=...">
+    <button class="ghost" id="btnLoadLetter" type="button" style="margin-top:10px;">Load letter</button>
+    <div class="status" id="readStatus"></div>
+    <div class="result hidden" id="readMeta"></div>
+    <button class="big hidden" id="btnPay" type="button">Pay &amp; unlock</button>
+    <div class="letter hidden" id="letterOut"></div>
+  </section>
+
+  <div class="howto">
+    <h3>How it works</h3>
+    <p><b>Seal.</b> The author writes a short letter (max 100 characters, max 150 UTF-8 bytes so it fits in one OP_RETURN). The browser encrypts it with a fresh AES-256-GCM key and posts a transaction: OP_RETURN [ciphertext, sha256(key)] plus a 546-sat dust output to the author&rsquo;s address. The key never leaves the author&rsquo;s browser.</p>
+    <p><b>Pay.</b> A reader pays the author&rsquo;s price to the author&rsquo;s address, with OP_RETURN [sha256(key)] &mdash; a public, on-chain proof of which letter they bought.</p>
+    <p><b>Reveal.</b> The author&rsquo;s open tab sees the payment and broadcasts a second transaction: OP_RETURN [key]. The reader verifies sha256(key) against the seal, then decrypts the letter locally. Every step is a real mainnet transaction; no server, no account, no middleman.</p>
+    <p><b>Limits, stated plainly.</b> Letters are short on purpose (one OP_RETURN, max 220 bytes). The author&rsquo;s tab must stay open to reveal &mdash; if it closes, the letter stays sealed until the author re-opens it with the saved key. WizardConnect signing needs a Paytaca or Cashonize wallet. Fees are about 1 sat/byte, so a full loop costs well under $1.</p>
+  </div>
+
+  <footer>Blaze Letters &middot; BCH BLAZE 2026 Mainnet Track &middot; All transactions are plain P2PKH + OP_RETURN. No seed phrase is ever requested.</footer>
+</div>
+
+<script src="https://cdn.mainnet.cash/mainnet-3.0.0.js"></script>
+<script type="module">
+import { TransactionBuilder, ElectrumNetworkProvider, placeholderP2PKHUnlocker } from 'https://cdn.jsdelivr.net/npm/cashscript@0.14.0/+esm';
+import { initiateDappRelay } from 'https://cdn.jsdelivr.net/npm/@wizardconnect/core@0.2.11/+esm';
+import { DappConnectionManager } from 'https://cdn.jsdelivr.net/npm/@wizardconnect/dapp@0.2.8/+esm';
+
+// ============================== CONFIG ==============================
+// NETWORK flips with ?net=chipnet (test on chipnet without touching the mainnet default).
+const NETWORK = new URLSearchParams(location.search).get('net') === 'chipnet' ? 'chipnet' : 'mainnet'; // 'mainnet' | 'chipnet'
+const PREFIX = NETWORK === 'chipnet' ? 'bchtest' : 'bitcoincash';
+const DUST = 546n;          // P2PKH dust threshold (satoshis)
+const FEE = 1000n;          // hardcoded miner fee for CashScript-built txs (HODL-dapp convention)
+const PRICE_DEFAULT = 2000n;
+const PRICE_MIN = 1000n;
+const MAX_CHARS = 100;
+const MAX_BYTES = 150;      // keeps the seal OP_RETURN (ciphertext + 16-byte tag + 32-byte hash) under 220 bytes
+const EXPLORER = NETWORK === 'chipnet'
+  ? 'https://chipnet.chaingraph.cash/'
+  : 'https://blockchair.com/bitcoin-cash/transaction/';
+const DONATE_ADDR = 'bitcoincash:qpsrfdv7rsaxafweujqe56t3avzeuuj5fyz2xsm762';
+const GITHUB_REPO = 'https://github.com/arukh89/bch-blaze-mainnet';
+
+// ==PURE-BEGIN==
+// Pure helpers (no browser APIs except WebCrypto in sha256/txid). Delimited so they can
+// be extracted and unit-tested in node.
+function hexToBytes(hex) {
+  if (hex.startsWith('0x') || hex.startsWith('0X')) hex = hex.slice(2);
+  if (hex.length % 2 !== 0) throw new Error('odd-length hex');
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.substr(i * 2, 2), 16);
+  return out;
+}
+function bytesToHex(bytes) {
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+function utf8Bytes(str) { return new TextEncoder().encode(str); }
+function utf8Length(str) { return utf8Bytes(str).length; }
+function b64urlEncode(bytes) {
+  let s = '';
+  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function b64urlDecode(str) {
+  const s = str.replace(/-/g, '+').replace(/_/g, '/');
+  const bin = atob(s + '='.repeat((4 - (s.length % 4)) % 4));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+async function sha256Bytes(data) {
+  return new Uint8Array(await crypto.subtle.digest('SHA-256', data));
+}
+async function txidFromHex(txHex) {
+  const raw = hexToBytes(txHex);
+  const once = await sha256Bytes(raw);
+  const twice = await sha256Bytes(once);
+  return bytesToHex(twice.reverse());
+}
+// Parse one OP_RETURN script (hex, starting with 6a) into its data chunks.
+function parseOpReturnHex(scriptHex) {
+  const b = hexToBytes(scriptHex);
+  if (b.length < 1 || b[0] !== 0x6a) throw new Error('not an OP_RETURN script');
+  const chunks = [];
+  let i = 1;
+  while (i < b.length) {
+    const op = b[i++];
+    let len;
+    if (op >= 0x01 && op <= 0x4b) len = op;
+    else if (op === 0x4c) { len = b[i++]; }
+    else if (op === 0x4d) { len = b[i] | (b[i + 1] << 8); i += 2; }
+    else if (op === 0x4e) { len = b[i] | (b[i + 1] << 8) | (b[i + 2] << 16) | (b[i + 3] << 24); i += 4; }
+    else throw new Error('unsupported OP_RETURN push opcode 0x' + op.toString(16));
+    chunks.push(b.slice(i, i + len));
+    i += len;
+  }
+  return chunks;
+}
+// Parse a raw transaction (hex) and return every OP_RETURN output's chunks.
+function parseOpReturnOutputs(txHex) {
+  const b = hexToBytes(txHex);
+  let o = 0;
+  const readVarInt = () => {
+    const v = b[o++];
+    if (v < 0xfd) return v;
+    if (v === 0xfd) { const x = b[o] | (b[o + 1] << 8); o += 2; return x; }
+    if (v === 0xfe) { const x = b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24); o += 4; return x; }
+    let x = 0n;
+    for (let k = 0; k < 8; k++) x |= BigInt(b[o + k]) << BigInt(8 * k);
+    o += 8;
+    return Number(x);
+  };
+  o += 4; // version
+  const nIn = readVarInt();
+  for (let i = 0; i < nIn; i++) {
+    o += 32 + 4; // prev txid + vout
+    const scriptLen = readVarInt();
+    o += scriptLen + 4; // script + sequence
+  }
+  const nOut = readVarInt();
+  const found = [];
+  for (let i = 0; i < nOut; i++) {
+    o += 8; // value
+    const scriptLen = readVarInt();
+    const script = b.slice(o, o + scriptLen);
+    o += scriptLen;
+    if (script.length > 0 && script[0] === 0x6a) found.push(parseOpReturnHex(bytesToHex(script)));
+  }
+  return found;
+}
+// Extract OP_RETURN chunks from a transaction object. Handles three shapes:
+// - Electrum verbose: vout[].scriptPubKey.hex
+// - mainnet.cash decoded: outputs[].address === 'OP_RETURN: <script hex>'
+// - libauth raw: outputs[].lockingBytecode (Uint8Array)
+function opReturnChunksFromVerboseTx(tx) {
+  const found = [];
+  const outs = tx.vout || tx.outputs || [];
+  for (const out of outs) {
+    const hex = out.scriptPubKey && out.scriptPubKey.hex;
+    if (typeof hex === 'string' && hex.startsWith('6a')) {
+      try { found.push(parseOpReturnHex(hex)); } catch (e) { /* ignore malformed */ }
+      continue;
+    }
+    if (typeof out.address === 'string' && out.address.startsWith('OP_RETURN: ')) {
+      try { found.push(parseOpReturnHex(out.address.slice('OP_RETURN: '.length))); } catch (e) { /* ignore */ }
+      continue;
+    }
+    if (out.lockingBytecode instanceof Uint8Array && out.lockingBytecode[0] === 0x6a) {
+      try { found.push(parseOpReturnHex(bytesToHex(out.lockingBytecode))); } catch (e) { /* ignore */ }
+    }
+  }
+  return found;
+}
+function sealOpReturnSize(plainBytes) {
+  // ciphertext = plaintext + 16-byte GCM tag; seal OP_RETURN = OP_RETURN + push(ct) + ct + push(32) + hash
+  const ctLen = plainBytes + 16;
+  const push = (n) => (n < 76 ? 1 : 2);
+  return 1 + push(ctLen) + ctLen + push(32) + 32;
+}
+// ==PURE-END==
+
+// ============================== SMALL UI HELPERS ==============================
+const $ = (id) => document.getElementById(id);
+const logEl = (el, html) => { el.innerHTML = html; };
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const explorerLink = (txid) => NETWORK === 'chipnet'
+  ? `<a href="${EXPLORER}" target="_blank" rel="noopener">chipnet explorer</a> (txid <span class="mono">${esc(txid)}</span>)`
+  : `<a href="${EXPLORER}${esc(txid)}" target="_blank" rel="noopener">${esc(txid)}</a>`;
+const fmtSats = (n) => `${Number(n).toLocaleString('en-US')} sats`;
+
+// ============================== CRYPTO (WebCrypto) ==============================
+async function sealLetter(plaintext) {
+  const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, utf8Bytes(plaintext)));
+  const rawKey = new Uint8Array(await crypto.subtle.exportKey('raw', key));
+  const commitment = await sha256Bytes(rawKey);
+  return { iv, ciphertext: ct, key: rawKey, commitment };
+}
+async function openLetter(ciphertext, iv, keyBytes, commitment) {
+  const check = await sha256Bytes(keyBytes);
+  if (bytesToHex(check) !== bytesToHex(commitment)) throw new Error('key does not match the on-chain commitment');
+  const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+  return new TextDecoder().decode(pt);
+}
+
+// ============================== PROVIDER / WALLETS ==============================
+const M = window.Mainnet || window.mainnet;
+if (!M) throw new Error('mainnet.cash library failed to load');
+const WalletClass = NETWORK === 'chipnet' ? M.TestNetWallet : M.Wallet;
+const WatchClass = NETWORK === 'chipnet' ? M.TestNetWatchWallet : M.WatchWallet;
+const provider = new ElectrumNetworkProvider(NETWORK === 'chipnet' ? 'chipnet' : 'mainnet');
+
+let signer = null;      // { kind:'builtin', wallet } | { kind:'wizard', dappMgr, address, pubkey }
+let wizardRelay = null; // { uri, cleanup }
+let watchCancel = null;
+
+function setWalletUI() {
+  const pill = $('netPill');
+  pill.textContent = NETWORK === 'chipnet' ? 'CHIPNET' : 'MAINNET';
+  pill.className = 'pill ' + (NETWORK === 'chipnet' ? 'chip' : 'main');
+  if (!signer) {
+    $('walletState').textContent = 'No wallet connected.';
+    $('walletDetail').textContent = '';
+    $('btnDisconnect').classList.add('hidden');
+    return;
+  }
+  $('walletState').textContent = signer.kind === 'wizard'
+    ? `Connected via WizardConnect (${esc(signer.walletName || 'wallet')}).`
+    : 'Built-in wallet connected (fresh wallet in this tab).';
+  $('walletDetail').textContent = `Address: ${signer.address}`;
+  $('btnDisconnect').classList.remove('hidden');
+}
+async function refreshBalance() {
+  if (!signer) return;
+  try {
+    const w = signer.kind === 'builtin' ? signer.wallet : await WatchClass.watchOnly(signer.address);
+    const bal = await w.getBalance();
+    $('walletDetail').textContent = `Address: ${signer.address}  ·  Balance: ${fmtSats(bal)}`;
+  } catch (e) { /* balance is best-effort */ }
+}
+function disconnectWallet() {
+  if (watchCancel) { try { watchCancel(); } catch (e) {} watchCancel = null; }
+  if (wizardRelay) { try { wizardRelay.cleanup(); } catch (e) {} wizardRelay = null; }
+  signer = null;
+  $('wizardBox').classList.add('hidden');
+  setWalletUI();
+  renderMyLetters();
+}
+
+// ============================== CONNECT ==============================
+async function connectBuiltin() {
+  const wallet = await WalletClass.newRandom();
+  const address = wallet.getDepositAddress();
+  signer = { kind: 'builtin', wallet, address };
+  $('wizardBox').classList.add('hidden');
+  setWalletUI();
+  await refreshBalance();
+  return wallet;
+}
+async function connectWizard() {
+  const dappMgr = new DappConnectionManager('Blaze Letters');
+  const relay = initiateDappRelay((payload) => dappMgr.updateConnection(payload.client, payload.status));
+  dappMgr.attachRelay(relay);
+  wizardRelay = relay;
+  $('wizardBox').classList.remove('hidden');
+  $('wizUri').textContent = relay.uri;
+  // QR code (best-effort: the URI text + copy button always work without it)
+  try {
+    const QR = (await import('https://cdn.jsdelivr.net/npm/qrcode@1.5.3/+esm')).default;
+    const canvas = document.createElement('canvas');
+    await QR.toCanvas(canvas, relay.uri, { width: 220 });
+    $('qr').replaceChildren(canvas);
+  } catch (e) {
+    $('qr').textContent = 'QR unavailable — copy the link below instead.';
+  }
+  const walletName = await new Promise((resolve, reject) => {
+    const to = setTimeout(() => reject(new Error('timed out waiting for the wallet (5 min)')), 5 * 60 * 1000);
+    dappMgr.on('walletready', (msg) => { clearTimeout(to); resolve(msg.wallet_name || 'wallet'); });
+    dappMgr.on('disconnect', () => { clearTimeout(to); reject(new Error('wallet disconnected')); });
+  });
+  const pubkey = dappMgr.getPubkey(0, 0n); // receive path, index 0
+  if (!pubkey) throw new Error('wallet connected but no receive pubkey was shared');
+  const FromKeyClass = NETWORK === 'chipnet' ? M.TestNetWallet : M.Wallet;
+  const watchOnly = await FromKeyClass.fromPublicKey(pubkey);
+  const address = watchOnly.getDepositAddress();
+  signer = { kind: 'wizard', dappMgr, address, pubkey, walletName };
+  $('wizardBox').classList.add('hidden');
+  setWalletUI();
+  await refreshBalance();
+}
+
+// ============================== TX BUILDING ==============================
+// Pick enough UTXOs for `needed` sats (value + fee + dust change), smallest first.
+function selectUtxos(utxos, needed) {
+  const sorted = [...utxos].sort((a, b) => Number(a.satoshis - b.satoshis));
+  const picked = [];
+  let total = 0n;
+  for (const u of sorted) {
+    picked.push(u);
+    total += BigInt(u.satoshis);
+    if (total >= needed || picked.length >= 3) break; // cap inputs: keeps the 1000-sat fee above 1 sat/byte
+  }
+  if (total < needed) throw new Error(`insufficient funds: need ${fmtSats(needed)}, have ${fmtSats(total)} — fund the wallet first`);
+  return { picked, total };
+}
+// Build + sign a P2PKH + OP_RETURN tx with CashScript and ask the WizardConnect wallet to sign it.
+// opReturnChunks: array of Uint8Array. outputs: [{ to, amount: bigint }].
+async function signViaWizard(opReturnChunks, outputs, userPrompt) {
+  if (!signer || signer.kind !== 'wizard') throw new Error('no WizardConnect wallet connected');
+  const address = signer.address;
+  const utxos = await provider.getUtxos(address);
+  const outTotal = outputs.reduce((s, o) => s + o.amount, 0n);
+  const { picked, total } = selectUtxos(utxos, outTotal + FEE + DUST);
+  const change = total - outTotal - FEE;
+  const builder = new TransactionBuilder({ provider });
+  builder.addInputs(picked, placeholderP2PKHUnlocker(address));
+  builder.addOpReturnOutput(opReturnChunks.map((c) => '0x' + bytesToHex(c)));
+  for (const o of outputs) builder.addOutput({ to: o.to, amount: o.amount });
+  if (change >= DUST) builder.addOutput({ to: address, amount: change });
+  const wcObj = builder.generateWcTransactionObject();
+  // generateWcTransactionObject returns { transaction, sourceOutputs } — pass both,
+  // exactly the shape in the WizardConnect dapp guide (hex form is the alternative).
+  const inputPaths = picked.map((_, i) => [i, 'receive', 0]);
+  const resp = await signer.dappMgr.signTransaction({
+    transaction: { transaction: wcObj.transaction, sourceOutputs: wcObj.sourceOutputs, userPrompt, broadcast: true },
+    inputPaths,
+  });
+  const signed = resp && resp.signedTransaction;
+  if (typeof signed === 'string') return await txidFromHex(signed);
+  return null; // txid unknown from the response; the address watch will find it
+}
+// Send a P2PKH + OP_RETURN tx with the built-in mainnet.cash wallet.
+// Requests are built as objects (OpReturnData + SendRequest) — the shapes the
+// library's own converter produces, so they work whether send() converts or not.
+async function sendViaBuiltin(opReturnChunks, outputs) {
+  if (!signer || signer.kind !== 'builtin') throw new Error('no built-in wallet connected');
+  const reqs = [M.OpReturnData.fromArray(opReturnChunks)];
+  for (const o of outputs) reqs.push(new M.SendRequest({ cashaddr: o.to, value: o.amount }));
+  const res = await signer.wallet.send(reqs);
+  return res && (res.txId || res.txid || res.transactionId || null);
+}
+async function sendTx(opReturnChunks, outputs, userPrompt) {
+  if (!signer) throw new Error('connect a wallet first');
+  return signer.kind === 'wizard'
+    ? await signViaWizard(opReturnChunks, outputs, userPrompt)
+    : await sendViaBuiltin(opReturnChunks, outputs);
+}
+
+// ============================== WATCHING ==============================
+// Watch an address for a tx whose OP_RETURN matches `match(chunks)`.
+// `match` may be async. Resolves with the txid.
+function watchForOpReturn(address, match, timeoutMs = 10 * 60 * 1000) {
+  return new Promise(async (resolve, reject) => {
+    let done = false;
+    const finish = (v, err) => {
+      if (done) return;
+      done = true;
+      if (cancel) { try { cancel(); } catch (e) {} }
+      clearTimeout(to);
+      err ? reject(err) : resolve(v);
+    };
+    const to = setTimeout(() => finish(null, new Error('timed out waiting for the transaction')), timeoutMs);
+    let cancel = null;
+    try {
+      const w = await WatchClass.watchOnly(address);
+      // Best-effort scan of recent history first (catches txs made before this tab opened).
+      try {
+        if (typeof w.getHistory === 'function') {
+          const hist = await w.getHistory();
+          for (const h of hist || []) {
+            const txid = h.tx_hash || h.hash || h.txid;
+            if (!txid) continue;
+            try {
+              const raw = await provider.getRawTransaction(txid);
+              for (const chunks of parseOpReturnOutputs(raw)) if (await match(chunks)) return finish(txid);
+            } catch (e) { /* skip unreadable tx */ }
+          }
+        }
+      } catch (e) { /* history scan is best-effort; the live watch below still works */ }
+      cancel = await w.watchTransactions(async (tx) => {
+        const txid = tx.hash || tx.txid || tx.tx_hash;
+        if (!txid) return;
+        for (const chunks of opReturnChunksFromVerboseTx(tx)) if (await match(chunks)) return finish(txid);
+      });
+    } catch (e) {
+      finish(null, e);
+    }
+  });
+}
+// Fetch a seal tx and return { ciphertext, commitment } from its OP_RETURN.
+async function fetchSealData(sealTxid) {
+  const raw = await provider.getRawTransaction(sealTxid);
+  for (const chunks of parseOpReturnOutputs(raw)) {
+    if (chunks.length === 2 && chunks[1].length === 32) {
+      return { ciphertext: chunks[0], commitment: chunks[1] };
+    }
+  }
+  throw new Error('seal transaction has no Blaze Letters OP_RETURN (expected [ciphertext, sha256(key)])');
+}
+
+// ============================== LETTER LINKS ==============================
+function makeLetterLink({ sealTxid, commitment, iv, price, authorAddress }) {
+  const payload = { tx: sealTxid, c: bytesToHex(commitment), iv: b64urlEncode(iv), p: Number(price), a: authorAddress };
+  return location.origin + location.pathname + '#r=' + b64urlEncode(utf8Bytes(JSON.stringify(payload)));
+}
+function parseLetterLink(str) {
+  const m = String(str || '').match(/#r=([A-Za-z0-9_-]+)/);
+  if (!m) throw new Error('not a Blaze Letters link (expected #r=…)');
+  const p = JSON.parse(new TextDecoder().decode(b64urlDecode(m[1])));
+  if (!p.tx || !p.c || !p.iv || !p.a) throw new Error('letter link is missing fields');
+  return { sealTxid: p.tx, commitment: hexToBytes(p.c), iv: b64urlDecode(p.iv), price: BigInt(p.p || 0), authorAddress: p.a };
+}
+
+// ============================== MY LETTERS (localStorage) ==============================
+const LS_KEY = 'blaze-letters-v1';
+function loadMyLetters() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); } catch (e) { return []; }
+}
+function saveMyLetter(entry) {
+  const all = loadMyLetters().filter((l) => l.sealTxid !== entry.sealTxid);
+  all.unshift(entry);
+  localStorage.setItem(LS_KEY, JSON.stringify(all.slice(0, 20)));
+}
+function renderMyLetters() {
+  const box = $('myLetters');
+  const all = loadMyLetters();
+  if (!all.length) { box.innerHTML = '<p class="hint">No sealed letters saved in this browser yet. Seal one in tab 1 first.</p>'; return; }
+  box.innerHTML = all.map((l, i) => `
+    <div class="result" style="margin-top:8px;">
+      <div class="kv">
+        <b>Sealed</b><span>${esc(new Date(l.createdAt).toLocaleString())}</span>
+        <b>Price</b><span>${fmtSats(l.price)}</span>
+        <b>Seal tx</b><span class="mono">${esc(l.sealTxid)}</span>
+      </div>
+      <div style="margin-top:8px;"><button class="ghost" type="button" data-watch-i="${i}">Watch this letter</button></div>
+    </div>`).join('');
+  box.querySelectorAll('[data-watch-i]').forEach((b) => b.addEventListener('click', () => {
+    const l = loadMyLetters()[Number(b.dataset.watchI)];
+    if (!l) return;
+    $('watchSealTxid').value = l.sealTxid;
+    $('watchKeyHex').value = l.keyHex;
+    $('btnWatch').click();
+  }));
+}
+
+// ============================== SEAL FLOW ==============================
+function updateSealPreview() {
+  const text = $('letterText').value;
+  const bytes = utf8Length(text);
+  const c = $('letterCounter');
+  c.textContent = `${text.length}/${MAX_CHARS} chars · ${bytes}/${MAX_BYTES} bytes`;
+  c.classList.toggle('over', text.length > MAX_CHARS || bytes > MAX_BYTES);
+  $('sizePreview').value = bytes > 0 ? `~${sealOpReturnSize(bytes)} / 220 bytes` : '—';
+  $('btnSeal').disabled = text.length === 0 || text.length > MAX_CHARS || bytes > MAX_BYTES;
+}
+async function doSeal() {
+  const text = $('letterText').value;
+  const price = BigInt($('priceInput').value || 0);
+  if (price < PRICE_MIN) { logEl($('sealStatus'), `<span class="bad">Price must be at least ${fmtSats(PRICE_MIN)}.</span>`); return; }
+  if (!signer) { logEl($('sealStatus'), '<span class="bad">Connect a wallet first (above).</span>'); return; }
+  $('btnSeal').disabled = true;
+  let found = null;
+  try {
+    logEl($('sealStatus'), '<span class="mut">Encrypting in this browser…</span>');
+    const sealed = await sealLetter(text);
+    const authorAddress = signer.address;
+    logEl($('sealStatus'), `<span class="mut">Posting the seal transaction (OP_RETURN ${sealOpReturnSize(utf8Length(text))} bytes)… approve it in your wallet.</span>`);
+    // Register the watch first so the txid is found even if the send response omits it.
+    found = watchForOpReturn(authorAddress, (chunks) =>
+      chunks.length === 2 && chunks[1].length === 32 && bytesToHex(chunks[1]) === bytesToHex(sealed.commitment), 5 * 60 * 1000);
+    let txid = await sendTx([sealed.ciphertext, sealed.commitment], [{ to: authorAddress, amount: DUST }], 'Seal Blaze Letter — publish ciphertext + key commitment');
+    if (!txid) txid = await found;
+    else found.catch(() => {});
+    const link = makeLetterLink({ sealTxid: txid, commitment: sealed.commitment, iv: sealed.iv, price, authorAddress });
+    saveMyLetter({ sealTxid: txid, commitment: bytesToHex(sealed.commitment), iv: b64urlEncode(sealed.iv), price: Number(price), authorAddress, keyHex: bytesToHex(sealed.key), createdAt: Date.now() });
+    renderMyLetters();
+    logEl($('sealStatus'), `<span class="ok">Sealed on-chain.</span> Seal tx: ${explorerLink(txid)}`);
+    $('sealResult').classList.remove('hidden');
+    $('sealResult').innerHTML = `
+      <div class="kv">
+        <b>Letter link</b><span><a href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a></span>
+        <b>Seal tx</b><span>${explorerLink(txid)}</span>
+        <b>Price</b><span>${fmtSats(price)}</span>
+      </div>
+      <div style="margin-top:10px;">
+        <button class="ghost" id="btnCopyLink" type="button">Copy letter link</button>
+        <button class="ghost" id="btnCopyKey" type="button">Copy decryption key</button>
+      </div>`;
+    $('sealWarn').classList.remove('hidden');
+    $('sealWarn').innerHTML = `<b>Save your key.</b> The decryption key is <span class="mono">${bytesToHex(sealed.key)}</span> — it lives only in this browser. If you close this tab without it, the letter can never be revealed. The Watch tab re-opens it from this browser, or from the key above.`;
+    $('btnCopyLink').addEventListener('click', () => navigator.clipboard.writeText(link));
+    $('btnCopyKey').addEventListener('click', () => navigator.clipboard.writeText(bytesToHex(sealed.key)));
+    $('watchSealTxid').value = txid;
+    $('watchKeyHex').value = bytesToHex(sealed.key);
+  } catch (e) {
+    if (found) found.catch(() => {});
+    logEl($('sealStatus'), `<span class="bad">Seal failed: ${esc(e.message || e)}</span>`);
+  } finally {
+    $('btnSeal').disabled = false;
+    updateSealPreview();
+  }
+}
+
+// ============================== WATCH / REVEAL FLOW ==============================
+async function doReveal(authorAddress, keyBytes, commitment, payTxid) {
+  logEl($('watchStatus'), '<span class="mut">Broadcasting the reveal transaction (OP_RETURN [key])… approve it in your wallet.</span>');
+  const txid = await sendTx([keyBytes], [{ to: authorAddress, amount: DUST }], 'Reveal Blaze Letter — release the decryption key');
+  let revealTxid = txid;
+  if (!revealTxid) {
+    revealTxid = await watchForOpReturn(authorAddress, (chunks) =>
+      chunks.length === 1 && chunks[0].length === 32 && bytesToHex(chunks[0]) === bytesToHex(keyBytes), 5 * 60 * 1000);
+  }
+  logEl($('watchStatus'), `<span class="ok">Key revealed on-chain.</span> Reveal tx: ${explorerLink(revealTxid)}${payTxid ? `<br>Payment tx: ${explorerLink(payTxid)}` : ''}`);
+  $('watchResult').classList.remove('hidden');
+  $('watchResult').innerHTML = `<div class="kv"><b>Reveal tx</b><span>${explorerLink(revealTxid)}</span>${payTxid ? `<b>Payment tx</b><span>${explorerLink(payTxid)}</span>` : ''}</div><p style="margin:10px 0 0;">The reader can now decrypt the letter. Their tab detects this reveal automatically.</p>`;
+  return revealTxid;
+}
+async function doWatch() {
+  const sealInput = $('watchSealTxid').value.trim();
+  const keyHex = $('watchKeyHex').value.trim();
+  if (!signer) { logEl($('watchStatus'), '<span class="bad">Connect the author wallet first (above) — the reveal is signed by the author.</span>'); return; }
+  if (!keyHex || keyHex.length !== 64) { logEl($('watchStatus'), '<span class="bad">Paste the 64-char hex decryption key first.</span>'); return; }
+  let sealTxid = sealInput, commitment = null, authorAddress = signer.address;
+  try {
+    if (sealInput.includes('#r=')) {
+      const p = parseLetterLink(sealInput);
+      sealTxid = p.sealTxid; commitment = p.commitment; authorAddress = p.authorAddress;
+    } else if (sealInput) {
+      const seal = await fetchSealData(sealInput);
+      commitment = seal.commitment;
+    } else throw new Error('paste a seal txid or a letter link first');
+  } catch (e) {
+    logEl($('watchStatus'), `<span class="bad">Could not read the seal: ${esc(e.message || e)}</span>`);
+    return;
+  }
+  const keyBytes = hexToBytes(keyHex);
+  const check = await sha256Bytes(keyBytes);
+  if (bytesToHex(check) !== bytesToHex(commitment)) {
+    logEl($('watchStatus'), '<span class="bad">That key does not match this letter&rsquo;s on-chain commitment. Double-check the key.</span>');
+    return;
+  }
+  $('btnWatch').disabled = true;
+  let revealed = false;
+  try {
+    logEl($('watchStatus'), `<span class="mut">Watching ${esc(authorAddress)} for a payment of this letter… keep this tab open.</span>`);
+    if (watchCancel) { try { watchCancel(); } catch (e) {} }
+    const w = await WatchClass.watchOnly(authorAddress);
+    watchCancel = await w.watchTransactions(async (tx) => {
+      const txid = tx.hash || tx.txid || tx.tx_hash;
+      if (!txid || revealed) return;
+      let paid = false;
+      for (const chunks of opReturnChunksFromVerboseTx(tx)) {
+        if (chunks.length === 1 && chunks[0].length === 32 && bytesToHex(chunks[0]) === bytesToHex(commitment)) paid = true;
+      }
+      if (!paid) return;
+      revealed = true;
+      logEl($('watchStatus'), `<span class="ok">Payment detected: ${esc(txid)}</span> — revealing…`);
+      try { await doReveal(authorAddress, keyBytes, commitment, txid); }
+      catch (e) { logEl($('watchStatus'), `<span class="bad">Reveal failed: ${esc(e.message || e)}</span>`); }
+    });
+    logEl($('watchStatus'), `<span class="mut">Watching ${esc(authorAddress)}… waiting for a reader to pay. This tab must stay open.</span>`);
+  } catch (e) {
+    logEl($('watchStatus'), `<span class="bad">Watch failed: ${esc(e.message || e)}</span>`);
+    $('btnWatch').disabled = false;
+  }
+}
+async function doRevealNow() {
+  const payTxid = $('watchPayTxid').value.trim();
+  const keyHex = $('watchKeyHex').value.trim();
+  if (!signer) { logEl($('watchStatus'), '<span class="bad">Connect the author wallet first.</span>'); return; }
+  if (!keyHex || keyHex.length !== 64) { logEl($('watchStatus'), '<span class="bad">Paste the 64-char hex decryption key first.</span>'); return; }
+  const keyBytes = hexToBytes(keyHex);
+  const commitment = await sha256Bytes(keyBytes);
+  // If a seal is given, verify the key matches its on-chain commitment before broadcasting.
+  const sealInput = $('watchSealTxid').value.trim();
+  if (sealInput) {
+    try {
+      let sealCommitment = null;
+      if (sealInput.includes('#r=')) sealCommitment = parseLetterLink(sealInput).commitment;
+      else sealCommitment = (await fetchSealData(sealInput)).commitment;
+      if (bytesToHex(sealCommitment) !== bytesToHex(commitment)) {
+        logEl($('watchStatus'), '<span class="bad">That key does not match the seal&rsquo;s on-chain commitment. Double-check the key.</span>');
+        return;
+      }
+    } catch (e) {
+      logEl($('watchStatus'), `<span class="bad">Could not read the seal to verify the key: ${esc(e.message || e)}</span>`);
+      return;
+    }
+  }
+  if (payTxid) {
+    try {
+      await provider.getRawTransaction(payTxid);
+    } catch (e) {
+      logEl($('watchStatus'), `<span class="bad">Payment tx not found on-chain: ${esc(e.message || e)}</span>`);
+      return;
+    }
+  }
+  try {
+    await doReveal(signer.address, keyBytes, commitment, payTxid || null);
+  } catch (e) {
+    logEl($('watchStatus'), `<span class="bad">Reveal failed: ${esc(e.message || e)}</span>`);
+  }
+}
+
+// ============================== READ FLOW ==============================
+let loadedLetter = null;
+async function doLoadLetter() {
+  const link = $('readLink').value.trim();
+  $('letterOut').classList.add('hidden');
+  $('btnPay').classList.add('hidden');
+  try {
+    const p = parseLetterLink(link);
+    logEl($('readStatus'), '<span class="mut">Reading the seal transaction…</span>');
+    const seal = await fetchSealData(p.sealTxid);
+    if (bytesToHex(seal.commitment) !== bytesToHex(p.commitment)) throw new Error('link commitment does not match the on-chain seal');
+    loadedLetter = { ...p, ciphertext: seal.ciphertext };
+    $('readMeta').classList.remove('hidden');
+    $('readMeta').innerHTML = `
+      <div class="kv">
+        <b>Author</b><span class="mono">${esc(p.authorAddress)}</span>
+        <b>Price</b><span>${fmtSats(p.price)}</span>
+        <b>Seal tx</b><span>${explorerLink(p.sealTxid)}</span>
+        <b>Commitment</b><span class="mono">${esc(bytesToHex(p.commitment))}</span>
+      </div>
+      <p style="margin:10px 0 0; color:var(--mut);">The ciphertext is on-chain; only the key is missing. Pay the price and the author&rsquo;s open tab reveals it.</p>`;
+    $('btnPay').classList.remove('hidden');
+    $('btnPay').textContent = `Pay ${fmtSats(p.price)} & unlock`;
+    logEl($('readStatus'), '<span class="ok">Letter loaded.</span>');
+  } catch (e) {
+    loadedLetter = null;
+    logEl($('readStatus'), `<span class="bad">Could not load the letter: ${esc(e.message || e)}</span>`);
+  }
+}
+async function doPay() {
+  if (!loadedLetter) { logEl($('readStatus'), '<span class="bad">Load a letter first.</span>'); return; }
+  if (!signer) { logEl($('readStatus'), '<span class="bad">Connect a wallet first (above).</span>'); return; }
+  $('btnPay').disabled = true;
+  try {
+    logEl($('readStatus'), `<span class="mut">Paying ${fmtSats(loadedLetter.price)} to the author… approve it in your wallet.</span>`);
+    const payTxid = await sendTx([loadedLetter.commitment], [{ to: loadedLetter.authorAddress, amount: loadedLetter.price }], 'Buy Blaze Letter — pay the author');
+    logEl($('readStatus'), `<span class="ok">Paid.</span> Payment tx: ${payTxid ? explorerLink(payTxid) : '(finding it on-chain…)'}<br><span class="mut">Now waiting for the author&rsquo;s tab to reveal the key — it must be open. This usually takes seconds.</span>`);
+    // Wait for a reveal tx: a 32-byte OP_RETURN chunk whose sha256 equals the commitment.
+    // (The reader's own payment carries the commitment itself, not the key — the hash check excludes it.)
+    const revealTxid = await watchForOpReturn(loadedLetter.authorAddress, async (chunks) => {
+      if (chunks.length !== 1 || chunks[0].length !== 32) return false;
+      const h = await sha256Bytes(chunks[0]);
+      return bytesToHex(h) === bytesToHex(loadedLetter.commitment);
+    }, 10 * 60 * 1000).catch(() => null);
+    let keyBytes = null;
+    if (revealTxid) {
+      const raw = await provider.getRawTransaction(revealTxid);
+      for (const chunks of parseOpReturnOutputs(raw)) {
+        if (chunks.length === 1 && chunks[0].length === 32) {
+          const h = await sha256Bytes(chunks[0]);
+          if (bytesToHex(h) === bytesToHex(loadedLetter.commitment)) { keyBytes = chunks[0]; break; }
+        }
+      }
+    }
+    if (!keyBytes) {
+      logEl($('readStatus'), `<span class="bad">No reveal yet — the author&rsquo;s tab may be closed. Your payment is on-chain (${payTxid ? explorerLink(payTxid) : 'see above'}); try again later, or ask the author to open the Watch tab with their key.</span>`);
+      $('btnPay').disabled = false;
+      return;
+    }
+    const text = await openLetter(loadedLetter.ciphertext, loadedLetter.iv, keyBytes, loadedLetter.commitment);
+    $('letterOut').classList.remove('hidden');
+    $('letterOut').textContent = text;
+    logEl($('readStatus'), `<span class="ok">Unlocked — key verified against the on-chain commitment.</span><br>Reveal tx: ${explorerLink(revealTxid)}`);
+  } catch (e) {
+    logEl($('readStatus'), `<span class="bad">Payment failed: ${esc(e.message || e)}</span>`);
+  } finally {
+    $('btnPay').disabled = false;
+  }
+}
+
+// ============================== WIRING ==============================
+document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('.tabs button').forEach((x) => x.classList.remove('on'));
+  b.classList.add('on');
+  ['seal', 'watch', 'read'].forEach((t) => $('tab-' + t).classList.toggle('hidden', t !== b.dataset.tab));
+}));
+$('letterText').addEventListener('input', updateSealPreview);
+$('btnSeal').addEventListener('click', doSeal);
+$('btnWatch').addEventListener('click', doWatch);
+$('btnRevealNow').addEventListener('click', doRevealNow);
+$('btnLoadLetter').addEventListener('click', doLoadLetter);
+$('btnPay').addEventListener('click', doPay);
+$('btnBuiltin').addEventListener('click', async () => {
+  try { await connectBuiltin(); } catch (e) { $('walletState').textContent = 'Built-in wallet failed: ' + (e.message || e); }
+});
+$('btnWizard').addEventListener('click', async () => {
+  $('walletState').textContent = 'Waiting for the wallet to scan the QR…';
+  try { await connectWizard(); } catch (e) { $('walletState').textContent = 'WizardConnect failed: ' + (e.message || e); $('wizardBox').classList.add('hidden'); }
+});
+$('btnDisconnect').addEventListener('click', disconnectWallet);
+$('btnCopyWiz').addEventListener('click', () => navigator.clipboard.writeText($('wizUri').textContent));
+$('copyDonate').addEventListener('click', () => navigator.clipboard.writeText(DONATE_ADDR));
+
+// Init
+setWalletUI();
+updateSealPreview();
+renderMyLetters();
+if (location.hash.includes('#r=')) {
+  document.querySelector('[data-tab="read"]').click();
+  $('readLink').value = location.href;
+  doLoadLetter();
+}
+</script>
+</body>
+</html>
