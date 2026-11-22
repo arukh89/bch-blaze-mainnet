@@ -81,7 +81,7 @@
       <div class="mono" id="wizUri" style="word-break:break-all; font-size:12px; color:var(--mut); margin-top:8px;"></div>
       <div style="margin-top:8px;"><button class="ghost" id="btnCopyWiz" type="button">Copy connection link</button></div>
     </div>
-    <div style="color:var(--mut); font-size:12px; margin-top:10px;">Built-in wallet: a fresh wallet is created in this browser tab only. Fund it with a small amount first &mdash; never import a seed phrase anywhere on this page. WizardConnect: your own mobile wallet signs each transaction.</div>
+    <div style="color:var(--mut); font-size:12px; margin-top:10px;">Built-in wallet: a fresh wallet is created in this browser tab only. Do not reload the tab after funding it, or the wallet is lost. Fund it with a small amount first &mdash; never import a seed phrase anywhere on this page. WizardConnect: your own mobile wallet signs each transaction.</div>
   </div>
 
   <div class="tabs">
@@ -341,6 +341,22 @@ const WalletClass = M ? (NETWORK === 'chipnet' ? M.TestNetWallet : M.Wallet) : n
 const WatchClass = M ? (NETWORK === 'chipnet' ? M.TestNetWatchWallet : M.WatchWallet) : null;
 function needLib() {
   if (!M) throw new Error('mainnet.cash library failed to load — check your connection and reload the page.');
+}
+// Chipnet Electrum override (chipnet mode only). mainnet.cash v3 ships exactly ONE
+// chipnet server — wss://chipnet.imaginary.cash:50004 — and it was DOWN (TCP
+// connection refused, verified 22 Nov 08:59 WIB), which left the built-in wallet
+// unable to fetch a balance/UTXOs or broadcast. getNetworkProvider(network, servers)
+// builds a NEW provider from the first URL only and does NOT register it globally,
+// so register it ourselves: the library keeps the shared provider on globalThis
+// under the network ticker ('tBCH' for testnet/chipnet) and wallets pick it up
+// from there. Verified from the v3.0.0 bundle. Primary: chipnet.bch.ninja
+// (CashScript's default chipnet server, alive 22 Nov).
+if (NETWORK === 'chipnet' && M) {
+  try {
+    const p = M.getNetworkProvider('testnet', 'wss://chipnet.bch.ninja:50004');
+    globalThis.tBCH = p;
+    if (M.getNetworkProvider('testnet') !== p) console.warn('chipnet provider override did not stick');
+  } catch (e) { console.error('chipnet provider override failed', e); }
 }
 const provider = new ElectrumNetworkProvider(NETWORK === 'chipnet' ? 'chipnet' : 'mainnet');
 
