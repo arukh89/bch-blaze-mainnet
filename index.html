@@ -324,10 +324,24 @@ async function openLetter(ciphertext, iv, keyBytes, commitment) {
 }
 
 // ============================== PROVIDER / WALLETS ==============================
-const M = window.Mainnet || window.mainnet;
-if (!M) throw new Error('mainnet.cash library failed to load');
-const WalletClass = NETWORK === 'chipnet' ? M.TestNetWallet : M.Wallet;
-const WatchClass = NETWORK === 'chipnet' ? M.TestNetWatchWallet : M.WatchWallet;
+// mainnet.cash v3 does NOT set window.Mainnet. The UMD bundle ends with
+// `self.__mainnetPromise = <promise>` — it resolves to the Mainnet namespace
+// (Wallet, TestNetWallet, WatchWallet, OpReturnData, SendRequest, ...).
+// Await it in a try/catch with a timeout race: a failed or hanging CDN load
+// must never kill the whole module (that left the pill wrong and every
+// button dead). If the lib is missing, wallet actions show a friendly error.
+let M = null;
+try {
+  M = await Promise.race([
+    window.__mainnetPromise ?? Promise.resolve(null),
+    new Promise((r) => setTimeout(() => r(null), 8000)),
+  ]);
+} catch (e) { console.error('mainnet.cash failed to load', e); M = null; }
+const WalletClass = M ? (NETWORK === 'chipnet' ? M.TestNetWallet : M.Wallet) : null;
+const WatchClass = M ? (NETWORK === 'chipnet' ? M.TestNetWatchWallet : M.WatchWallet) : null;
+function needLib() {
+  if (!M) throw new Error('mainnet.cash library failed to load — check your connection and reload the page.');
+}
 const provider = new ElectrumNetworkProvider(NETWORK === 'chipnet' ? 'chipnet' : 'mainnet');
 
 let signer = null;      // { kind:'builtin', wallet } | { kind:'wizard', dappMgr, address, pubkey }
@@ -369,6 +383,7 @@ function disconnectWallet() {
 
 // ============================== CONNECT ==============================
 async function connectBuiltin() {
+  needLib();
   const wallet = await WalletClass.newRandom();
   const address = wallet.getDepositAddress();
   signer = { kind: 'builtin', wallet, address };
@@ -400,6 +415,7 @@ async function connectWizard() {
   });
   const pubkey = dappMgr.getPubkey(0, 0n); // receive path, index 0
   if (!pubkey) throw new Error('wallet connected but no receive pubkey was shared');
+  needLib();
   const FromKeyClass = NETWORK === 'chipnet' ? M.TestNetWallet : M.Wallet;
   const watchOnly = await FromKeyClass.fromPublicKey(pubkey);
   const address = watchOnly.getDepositAddress();
@@ -817,6 +833,7 @@ $('copyDonate').addEventListener('click', () => navigator.clipboard.writeText(DO
 
 // Init
 setWalletUI();
+if (!M) $('walletState').textContent = 'mainnet.cash library failed to load — check your connection and reload the page.';
 updateSealPreview();
 renderMyLetters();
 if (location.hash.includes('#r=')) {
